@@ -92,7 +92,7 @@ const RecentReports = () => {
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
           {mockReports.map((report) => (
-            <Card key={report.id} className="report-card hover:scale-105 transition-transform duration-300">
+            <Card key={report.id} className="report-card hover:scale-105 transition-transform duration-300 cursor-pointer" onClick={() => window.location.href = `/report/${report.id}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <Badge 

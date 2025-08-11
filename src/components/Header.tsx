@@ -18,14 +18,17 @@ const Header = () => {
         </div>
         
         <nav className="hidden md:flex items-center space-x-6">
-          <a href="#" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <a href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             الخريطة
           </a>
-          <a href="#" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <a href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             التبليغات
           </a>
-          <a href="#" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+          <a href="/about" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             حول
+          </a>
+          <a href="/faq" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            أسئلة
           </a>
         </nav>
 
@@ -33,7 +36,7 @@ const Header = () => {
           <Button variant="outline" size="sm" className="hidden sm:flex">
             تسجيل الدخول
           </Button>
-          <Button className="btn-hero text-primary-foreground">
+          <Button className="btn-hero text-primary-foreground" onClick={() => window.location.href = '/report'}>
             بلغ الآن 🚨
           </Button>
           <Button variant="ghost" size="sm" className="md:hidden">
