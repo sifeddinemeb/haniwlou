@@ -6,8 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Report from "./pages/Report";
 import ReportDetail from "./pages/ReportDetail";
-import About from "./pages/About";
-import FAQ from "./pages/FAQ";
+import Dashboard from "./pages/Dashboard";
+import ViewAllReports from "./pages/ViewAllReports";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,15 +19,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/report/:id" element={<ReportDetail />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/faq" element={<FAQ />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div dir="rtl">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/report" element={<Report />} />
+            <Route path="/report/:id" element={<ReportDetail />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/reports" element={<ViewAllReports />} />
+            <Route path="/auth" element={<Auth />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
