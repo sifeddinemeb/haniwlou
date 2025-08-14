@@ -10,7 +10,7 @@
 
 ---
 
-## 🚀 Sprint 1: Database Foundation & Authentication (Week 1)
+## ✅ Sprint 1: Database Foundation & Authentication (Week 1) - COMPLETED
 
 **Goals:**
 - Complete working auth system with username/password only
@@ -18,12 +18,13 @@
 - Connect UI to real Supabase backend
 
 **Tasks:**
-- [ ] Create Supabase database schema (profiles, reports, report_likes, report_views) (#data)
-- [ ] Set up Row Level Security policies for all tables (#security)
-- [ ] Connect Auth.tsx to Supabase authentication (#auth)
-- [ ] Implement session management and protected routes (#auth)
-- [ ] Update Header.tsx to use real auth state (#ui)
-- [ ] Add proper error handling for auth flows (#ui)
+- [x] Create Supabase database schema (profiles, reports, report_likes, report_views) (#data)
+- [x] Set up Row Level Security policies for all tables (#security)
+- [x] Connect Auth.tsx to Supabase authentication (#auth)
+- [x] Implement session management and protected routes (#auth)
+- [x] Update Header.tsx to use real auth state (#ui)
+- [x] Add proper error handling for auth flows (#ui)
+- [x] Connect Report.tsx form to database (#api)
 
 **Testing/Validation:**
 - [🧪 TEST] Username/password signup → login → logout flow
