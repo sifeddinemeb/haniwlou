@@ -1,211 +1,169 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Shield, 
-  User, 
-  Lock, 
-  LogIn, 
-  UserPlus,
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Check
-} from "lucide-react";
+import { Eye, EyeOff, Shield, AlertTriangle, Mail, User, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { sanitizeInput } from "@/lib/validations";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
+
+  // Login form state
   const [loginData, setLoginData] = useState({
-    username: "",
+    email: "",
     password: ""
   });
-  
+
+  // Signup form state
   const [signupData, setSignupData] = useState({
+    email: "",
     username: "",
     password: "",
     confirmPassword: ""
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    // Input validation and sanitization
+    const sanitizedEmail = sanitizeInput(loginData.email);
+    const sanitizedPassword = sanitizeInput(loginData.password);
+    
+    if (!sanitizedEmail || !sanitizedPassword) {
+      return;
+    }
 
+    setLoading(true);
+    
     try {
-      // Simulate login API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (!loginData.username || !loginData.password) {
-        toast({
-          title: "خطأ في البيانات",
-          description: "يرجى ملء جميع الحقول المطلوبة",
-          variant: "destructive"
-        });
-        return;
+      const { error } = await signIn(sanitizedEmail, sanitizedPassword);
+      if (!error) {
+        navigate('/dashboard');
       }
-
-      // Mock successful login
-      localStorage.setItem("user", JSON.stringify({ username: loginData.username }));
-      
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: `مرحباً بك ${loginData.username}`,
-      });
-
-      navigate("/dashboard");
     } catch (error) {
-      toast({
-        title: "خطأ في تسجيل الدخول",
-        description: "تحقق من بيانات الدخول وحاول مرة أخرى",
-        variant: "destructive"
-      });
+      console.error('Login error:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    // Input validation and sanitization
+    const sanitizedEmail = sanitizeInput(signupData.email);
+    const sanitizedUsername = sanitizeInput(signupData.username);
+    const sanitizedPassword = sanitizeInput(signupData.password);
+    const sanitizedConfirmPassword = sanitizeInput(signupData.confirmPassword);
+    
+    if (!sanitizedEmail || !sanitizedUsername || !sanitizedPassword || !sanitizedConfirmPassword) {
+      return;
+    }
 
+    if (sanitizedPassword !== sanitizedConfirmPassword) {
+      return;
+    }
+
+    if (sanitizedPassword.length < 6) {
+      return;
+    }
+
+    setLoading(true);
+    
     try {
-      // Validate passwords match
-      if (signupData.password !== signupData.confirmPassword) {
-        toast({
-          title: "خطأ في كلمة المرور",
-          description: "كلمتا المرور غير متطابقتين",
-          variant: "destructive"
-        });
-        return;
+      const { error } = await signUp(sanitizedEmail, sanitizedPassword, sanitizedUsername);
+      if (!error) {
+        setActiveTab("login");
       }
-
-      if (signupData.password.length < 6) {
-        toast({
-          title: "كلمة مرور ضعيفة",
-          description: "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Simulate signup API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (!signupData.username || !signupData.password) {
-        toast({
-          title: "خطأ في البيانات",
-          description: "يرجى ملء جميع الحقول المطلوبة",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Mock successful signup
-      localStorage.setItem("user", JSON.stringify({ username: signupData.username }));
-      
-      toast({
-        title: "تم إنشاء الحساب بنجاح",
-        description: `مرحباً بك ${signupData.username}! يمكنك الآن استخدام المنصة`,
-      });
-
-      navigate("/dashboard");
     } catch (error) {
-      toast({
-        title: "خطأ في إنشاء الحساب",
-        description: "حدث خطأ أثناء إنشاء الحساب، حاول مرة أخرى",
-        variant: "destructive"
-      });
+      console.error('Signup error:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const handleAnonymousAccess = () => {
+    navigate('/');
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-warm-gradient" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <Header />
       
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-md mx-auto">
-          {/* Back Button */}
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/")}
-            className="mb-6"
-          >
-            <ArrowLeft className="ml-2 h-4 w-4" />
-            العودة للرئيسية
-          </Button>
-
-          {/* Header */}
           <div className="text-center mb-8">
             <Badge variant="secondary" className="mb-4">
               <Shield className="ml-2 h-4 w-4" />
-              حساب آمن ومحمي
+              نظام آمن ومحمي
             </Badge>
-            <h1 className="text-3xl font-bold text-foreground mb-4">
-              انضم لمجتمع حنيولو
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              انضم إلى 7انيولو
             </h1>
             <p className="text-muted-foreground">
-              ساهم في جعل الجزائر مكاناً أكثر أماناً وشفافية
+              ساعد في جعل الجزائر مكاناً أكثر أماناً
             </p>
           </div>
 
-          {/* Auth Card */}
-          <Card className="shadow-xl">
+          <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle className="text-center">
-                الدخول إلى حسابك
-              </CardTitle>
+              <CardTitle className="text-center">تسجيل الدخول</CardTitle>
+              <CardDescription className="text-center">
+                قم بالدخول إلى حسابك أو إنشاء حساب جديد
+              </CardDescription>
             </CardHeader>
-            
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login" className="flex items-center gap-2">
-                    <LogIn className="h-4 w-4" />
-                    دخول
-                  </TabsTrigger>
-                  <TabsTrigger value="signup" className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    تسجيل
-                  </TabsTrigger>
+                  <TabsTrigger value="login">دخول</TabsTrigger>
+                  <TabsTrigger value="signup">تسجيل جديد</TabsTrigger>
                 </TabsList>
 
-                {/* Login Tab */}
-                <TabsContent value="login">
+                <TabsContent value="login" className="space-y-4">
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-username">اسم المستخدم</Label>
+                      <Label htmlFor="login-email">البريد الإلكتروني</Label>
                       <div className="relative">
-                        <User className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                          id="login-username"
-                          type="text"
-                          placeholder="أدخل اسم المستخدم"
-                          value={loginData.username}
-                          onChange={(e) => setLoginData({...loginData, username: e.target.value})}
+                          id="login-email"
+                          type="email"
+                          placeholder="البريد الإلكتروني"
+                          value={loginData.email}
+                          onChange={(e) => setLoginData({...loginData, email: e.target.value})}
                           className="pr-10 text-right"
-                          dir="rtl"
                           required
                         />
                       </div>
                     </div>
-
+                    
                     <div className="space-y-2">
                       <Label htmlFor="login-password">كلمة المرور</Label>
                       <div className="relative">
@@ -213,11 +171,10 @@ const Auth = () => {
                         <Input
                           id="login-password"
                           type={showPassword ? "text" : "password"}
-                          placeholder="أدخل كلمة المرور"
+                          placeholder="كلمة المرور"
                           value={loginData.password}
                           onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                           className="pr-10 pl-10 text-right"
-                          dir="rtl"
                           required
                         />
                         <Button
@@ -232,20 +189,30 @@ const Auth = () => {
                       </div>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full btn-hero" 
-                      size="lg"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "جاري الدخول..." : "دخول"}
+                    <Button type="submit" className="w-full" disabled={loading || authLoading}>
+                      {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
                     </Button>
                   </form>
                 </TabsContent>
 
-                {/* Signup Tab */}
-                <TabsContent value="signup">
+                <TabsContent value="signup" className="space-y-4">
                   <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">البريد الإلكتروني</Label>
+                      <div className="relative">
+                        <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="البريد الإلكتروني"
+                          value={signupData.email}
+                          onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                          className="pr-10 text-right"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor="signup-username">اسم المستخدم</Label>
                       <div className="relative">
@@ -253,16 +220,15 @@ const Auth = () => {
                         <Input
                           id="signup-username"
                           type="text"
-                          placeholder="اختر اسم مستخدم"
+                          placeholder="اسم المستخدم"
                           value={signupData.username}
                           onChange={(e) => setSignupData({...signupData, username: e.target.value})}
                           className="pr-10 text-right"
-                          dir="rtl"
                           required
                         />
                       </div>
                     </div>
-
+                    
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">كلمة المرور</Label>
                       <div className="relative">
@@ -270,11 +236,10 @@ const Auth = () => {
                         <Input
                           id="signup-password"
                           type={showPassword ? "text" : "password"}
-                          placeholder="أدخل كلمة مرور قوية"
+                          placeholder="كلمة المرور (6 أحرف على الأقل)"
                           value={signupData.password}
                           onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                           className="pr-10 pl-10 text-right"
-                          dir="rtl"
                           required
                           minLength={6}
                         />
@@ -289,19 +254,18 @@ const Auth = () => {
                         </Button>
                       </div>
                     </div>
-
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="signup-confirm-password">تأكيد كلمة المرور</Label>
+                      <Label htmlFor="signup-confirm">تأكيد كلمة المرور</Label>
                       <div className="relative">
                         <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                          id="signup-confirm-password"
+                          id="signup-confirm"
                           type={showConfirmPassword ? "text" : "password"}
-                          placeholder="أعد إدخال كلمة المرور"
+                          placeholder="تأكيد كلمة المرور"
                           value={signupData.confirmPassword}
                           onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
                           className="pr-10 pl-10 text-right"
-                          dir="rtl"
                           required
                         />
                         <Button
@@ -316,40 +280,20 @@ const Auth = () => {
                       </div>
                     </div>
 
-                    {/* Password Requirements */}
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Check className={`h-3 w-3 ${signupData.password.length >= 6 ? 'text-green-600' : 'text-muted-foreground'}`} />
-                        <span>6 أحرف على الأقل</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className={`h-3 w-3 ${signupData.password === signupData.confirmPassword && signupData.confirmPassword ? 'text-green-600' : 'text-muted-foreground'}`} />
-                        <span>تطابق كلمتي المرور</span>
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full btn-hero" 
-                      size="lg"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "جاري إنشاء الحساب..." : "إنشاء حساب"}
+                    <Button type="submit" className="w-full" disabled={loading || authLoading}>
+                      {loading ? "جاري إنشاء الحساب..." : "إنشاء حساب جديد"}
                     </Button>
                   </form>
                 </TabsContent>
               </Tabs>
 
-              <Separator className="my-6" />
-
-              {/* Anonymous Option */}
-              <div className="text-center">
+              <div className="mt-6 pt-6 border-t text-center">
                 <p className="text-sm text-muted-foreground mb-3">
-                  أو يمكنك استخدام المنصة بشكل مجهول
+                  أو استخدم المنصة بدون تسجيل
                 </p>
                 <Button 
                   variant="outline" 
-                  onClick={() => navigate("/")}
+                  onClick={handleAnonymousAccess}
                   className="w-full"
                 >
                   <Shield className="ml-2 h-4 w-4" />
@@ -357,18 +301,11 @@ const Auth = () => {
                 </Button>
               </div>
 
-              {/* Security Notice */}
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Shield className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-green-800 font-medium mb-1 text-sm">
-                      حماية خصوصيتك أولويتنا
-                    </h4>
-                    <p className="text-green-700 text-xs">
-                      جميع بياناتك محمية ومشفرة. لن نشارك معلوماتك مع أي جهة خارجية.
-                      يمكنك استخدام المنصة بشكل مجهول تماماً دون الحاجة لإنشاء حساب.
-                    </p>
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="text-xs text-blue-800">
+                    <strong>تنبيه أمني:</strong> جميع البيانات محمية ومشفرة. يمكنك استخدام المنصة بشكل مجهول دون الحاجة للتسجيل.
                   </div>
                 </div>
               </div>

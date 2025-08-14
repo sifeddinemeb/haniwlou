@@ -1,24 +1,17 @@
-import { Button } from "@/components/ui/button";
-import { MapPin, Menu, User, Phone } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, MapPin, AlertTriangle, Home, BarChart3, LogIn, LogOut, User, Plus, Phone } from 'lucide-react';
+import { Button } from './ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 const Header = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const { user, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
-    navigate("/");
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
   };
 
   const handleEmergencyCall = (number: string) => {
@@ -26,17 +19,17 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" dir="rtl">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center space-x-4 space-x-reverse">
           <div className="flex items-center space-x-2 space-x-reverse cursor-pointer" onClick={() => navigate("/")}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg hero-gradient">
-              <MapPin className="h-5 w-5 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <MapPin className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">حنيولو</h1>
-              <p className="text-xs text-muted-foreground">7aniwlou</p>
+              <h1 className="text-xl font-bold text-foreground">7انيولو</h1>
+              <p className="text-xs text-muted-foreground">حنيولو</p>
             </div>
           </div>
         </div>
@@ -47,19 +40,22 @@ const Header = () => {
             onClick={() => navigate("/")}
             className="text-sm font-medium text-foreground hover:text-primary transition-colors"
           >
-            الخريطة
+            <Home className="inline h-4 w-4 ml-1" />
+            الرئيسية
           </button>
           <button 
             onClick={() => navigate("/reports")}
             className="text-sm font-medium text-foreground hover:text-primary transition-colors"
           >
-            جميع التبليغات
+            <AlertTriangle className="inline h-4 w-4 ml-1" />
+            التبليغات
           </button>
           {user && (
             <button 
               onClick={() => navigate("/dashboard")}
               className="text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
+              <BarChart3 className="inline h-4 w-4 ml-1" />
               لوحة التحكم
             </button>
           )}
@@ -91,9 +87,12 @@ const Header = () => {
 
           {user ? (
             <div className="hidden sm:flex items-center space-x-2 space-x-reverse">
-              <span className="text-sm text-muted-foreground">مرحباً، {user.username}</span>
+              <span className="text-sm text-muted-foreground">
+                مرحباً، {user.user_metadata?.username || user.email?.split('@')[0]}
+              </span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                تسجيل الخروج
+                <LogOut className="ml-2 h-4 w-4" />
+                خروج
               </Button>
             </div>
           ) : (
@@ -103,17 +102,18 @@ const Header = () => {
               className="hidden sm:flex"
               onClick={() => navigate("/auth")}
             >
-              <User className="ml-2 h-4 w-4" />
+              <LogIn className="ml-2 h-4 w-4" />
               دخول
             </Button>
           )}
           
           <Button 
-            className="btn-hero text-primary-foreground" 
+            className="bg-primary hover:bg-primary/90 text-primary-foreground" 
             onClick={() => navigate('/report')}
             size="sm"
           >
-            بلغ الآن 🚨
+            <Plus className="ml-2 h-4 w-4" />
+            بلغ الآن
           </Button>
           
           <Button 
@@ -136,18 +136,20 @@ const Header = () => {
                 navigate("/");
                 setMobileMenuOpen(false);
               }}
-              className="block w-full text-right py-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+              className="flex items-center w-full text-right py-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
-              الخريطة
+              <Home className="ml-2 h-4 w-4" />
+              الرئيسية
             </button>
             <button 
               onClick={() => {
                 navigate("/reports");
                 setMobileMenuOpen(false);
               }}
-              className="block w-full text-right py-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+              className="flex items-center w-full text-right py-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
-              جميع التبليغات
+              <AlertTriangle className="ml-2 h-4 w-4" />
+              التبليغات
             </button>
             {user && (
               <button 
@@ -155,8 +157,9 @@ const Header = () => {
                   navigate("/dashboard");
                   setMobileMenuOpen(false);
                 }}
-                className="block w-full text-right py-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                className="flex items-center w-full text-right py-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
+                <BarChart3 className="ml-2 h-4 w-4" />
                 لوحة التحكم
               </button>
             )}
@@ -188,7 +191,9 @@ const Header = () => {
 
             {user ? (
               <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground mb-2">مرحباً، {user.username}</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  مرحباً، {user.user_metadata?.username || user.email?.split('@')[0]}
+                </p>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -198,6 +203,7 @@ const Header = () => {
                     setMobileMenuOpen(false);
                   }}
                 >
+                  <LogOut className="ml-2 h-4 w-4" />
                   تسجيل الخروج
                 </Button>
               </div>
@@ -211,7 +217,7 @@ const Header = () => {
                   setMobileMenuOpen(false);
                 }}
               >
-                <User className="ml-2 h-4 w-4" />
+                <LogIn className="ml-2 h-4 w-4" />
                 دخول / تسجيل
               </Button>
             )}
