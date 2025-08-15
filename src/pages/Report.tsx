@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, ArrowLeft, MapPin, Upload, Shield, Clock, AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ArrowRight, ArrowLeft, MapPin, Upload, Shield, Clock, AlertTriangle, Save } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeInput } from "@/lib/validations";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { wilayas } from "@/data/wilayas";
+import FileUpload from "@/components/FileUpload";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -22,18 +26,22 @@ const Report = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  const [formData, setFormData] = useState({
+  // Use localStorage for draft saving
+  const [formData, setFormData] = useLocalStorage('report-draft', {
     title: "",
     description: "",
     category: "",
     location: "",
+    wilaya: "",
     latitude: null as number | null,
     longitude: null as number | null,
     priority: "medium" as "low" | "medium" | "high",
-    isAnonymous: true
+    isAnonymous: true,
+    mediaUrls: [] as string[]
   });
 
   const [step, setStep] = useState(1);
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
   const categories = [
     { value: "infrastructure", label: "مشاكل البنية التحتية" },
@@ -77,7 +85,8 @@ const Report = () => {
         longitude: formData.longitude,
         is_anonymous: formData.isAnonymous,
         user_id: formData.isAnonymous ? null : user?.id || null,
-        status: 'pending'
+        status: 'pending',
+        media_urls: [...formData.mediaUrls, ...uploadedFiles]
       };
 
       // Insert report into database
@@ -103,6 +112,9 @@ const Report = () => {
         description: "شكراً لك على المساهمة في تحسين مجتمعك",
       });
 
+      // Clear draft and navigate
+      localStorage.removeItem('report-draft');
+      
       // Navigate to report detail or dashboard
       if (data) {
         navigate(`/report/${data.id}`);
@@ -166,7 +178,15 @@ const Report = () => {
       });
       return;
     }
-    if (step < 3) setStep(step + 1);
+    if (step === 2 && (!formData.category || (!formData.location.trim() && !formData.wilaya))) {
+      toast({
+        title: "يرجى إكمال البيانات",
+        description: "الفئة والموقع مطلوبان للمتابعة",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (step < 4) setStep(step + 1);
   };
 
   const prevStep = () => {
@@ -196,14 +216,14 @@ const Report = () => {
           {/* Progress Steps */}
           <div className="flex justify-center mb-8">
             <div className="flex items-center space-x-4 space-x-reverse">
-              {[1, 2, 3].map((i) => (
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center">
                   <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
                     step >= i ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
                     {i}
                   </div>
-                  {i < 3 && (
+                  {i < 4 && (
                     <div className={`w-12 h-0.5 mx-2 ${
                       step > i ? 'bg-primary' : 'bg-muted'
                     }`} />
@@ -213,12 +233,21 @@ const Report = () => {
             </div>
           </div>
 
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <Progress value={(step / 4) * 100} className="h-2" />
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              الخطوة {step} من 4
+            </p>
+          </div>
+
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {step === 1 && "تفاصيل البلاغ"}
                 {step === 2 && "الموقع والفئة"}
-                {step === 3 && "مراجعة وإرسال"}
+                {step === 3 && "الصور والفيديوهات"}
+                {step === 4 && "مراجعة وإرسال"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -290,34 +319,73 @@ const Report = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="location">الموقع *</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="location"
-                          type="text"
-                          placeholder="العنوان أو الموقع..."
-                          value={formData.location}
-                          onChange={(e) => setFormData({...formData, location: e.target.value})}
-                          className="text-right flex-1"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={getCurrentLocation}
-                          disabled={loading}
-                        >
-                          <MapPin className="h-4 w-4" />
-                        </Button>
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input
+                            id="location"
+                            type="text"
+                            placeholder="العنوان أو الموقع..."
+                            value={formData.location}
+                            onChange={(e) => setFormData({...formData, location: e.target.value})}
+                            className="text-right flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={getCurrentLocation}
+                            disabled={loading}
+                          >
+                            <MapPin className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="wilaya">أو اختر الولاية</Label>
+                          <Select value={formData.wilaya} onValueChange={(value) => setFormData({...formData, wilaya: value})}>
+                            <SelectTrigger className="text-right">
+                              <SelectValue placeholder="اختر الولاية" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {wilayas.map((wilaya) => (
+                                <SelectItem key={wilaya.code} value={wilaya.nameAr}>
+                                  {wilaya.nameAr}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {formData.latitude && formData.longitude && (
+                          <p className="text-sm text-green-600">تم تحديد الموقع الجغرافي</p>
+                        )}
                       </div>
-                      {formData.latitude && formData.longitude && (
-                        <p className="text-sm text-green-600">تم تحديد الموقع الجغرافي</p>
-                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Step 3: Review and Submit */}
+                {/* Step 3: Media Upload */}
                 {step === 3 && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>إضافة صور أو فيديوهات (اختياري)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        يمكنك إضافة صور أو فيديوهات توضيحية للمشكلة المبلغ عنها
+                      </p>
+                    </div>
+                    <FileUpload
+                      onFilesUploaded={(urls) => {
+                        setUploadedFiles(urls);
+                        setFormData({...formData, mediaUrls: [...formData.mediaUrls, ...urls]});
+                      }}
+                      maxFiles={5}
+                      maxFileSize={10}
+                      userId={user?.id}
+                    />
+                  </div>
+                )}
+
+                {/* Step 4: Review and Submit */}
+                {step === 4 && (
                   <div className="space-y-4">
                     <div className="bg-muted p-4 rounded-lg space-y-3">
                       <div>
@@ -336,7 +404,9 @@ const Report = () => {
                       </div>
                       <div>
                         <h4 className="font-medium text-foreground">الموقع:</h4>
-                        <p className="text-muted-foreground">{formData.location}</p>
+                        <p className="text-muted-foreground">
+                          {formData.location || formData.wilaya || "غير محدد"}
+                        </p>
                       </div>
                       <div>
                         <h4 className="font-medium text-foreground">الأولوية:</h4>
@@ -344,6 +414,15 @@ const Report = () => {
                           {priorities.find(p => p.value === formData.priority)?.label}
                         </p>
                       </div>
+                      
+                      {(formData.mediaUrls.length > 0 || uploadedFiles.length > 0) && (
+                        <div>
+                          <h4 className="font-medium text-foreground">الملفات المرفقة:</h4>
+                          <p className="text-muted-foreground">
+                            {formData.mediaUrls.length + uploadedFiles.length} ملف مرفق
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center space-x-2 space-x-reverse">
@@ -383,7 +462,7 @@ const Report = () => {
                     السابق
                   </Button>
 
-                  {step < 3 ? (
+                  {step < 4 ? (
                     <Button
                       type="button"
                       onClick={nextStep}
